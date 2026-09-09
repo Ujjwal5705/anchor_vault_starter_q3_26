@@ -93,54 +93,54 @@ fn test() {
         "vault should increase by the deposit"
     );
 
-    // send(
-    //     &mut svm,
-    //     &user,
-    //     Instruction::new_with_bytes(
-    //         program_id,
-    //         &q3_26_vault::instruction::Withdraw {
-    //             amount: WITHDRAW_LAMPORTS,
-    //         }
-    //         .data(),
-    //         q3_26_vault::accounts::Withdraw {
-    //             user: user.pubkey(),
-    //             vault_state,
-    //             vault,
-    //             system_program: system_program::ID,
-    //         }
-    //         .to_account_metas(None),
-    //     ),
-    // );
+    send(
+        &mut svm,
+        &user,
+        Instruction::new_with_bytes(
+            program_id,
+            &q3_26_vault::instruction::Withdraw {
+                amount: WITHDRAW_LAMPORTS,
+            }
+            .data(),
+            q3_26_vault::accounts::Withdraw {
+                user: user.pubkey(),
+                vault_state,
+                vault,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
 
-    // assert_eq!(
-    //     svm.get_balance(&vault).unwrap(),
-    //     rent_exempt + DEPOSIT_LAMPORTS - WITHDRAW_LAMPORTS,
-    //     "vault should decrease by the withdraw"
-    // );
+    assert_eq!(
+        svm.get_balance(&vault).unwrap(),
+        rent_exempt + DEPOSIT_LAMPORTS - WITHDRAW_LAMPORTS,
+        "vault should decrease by the withdraw"
+    );
 
-    // send(
-    //     &mut svm,
-    //     &user,
-    //     Instruction::new_with_bytes(
-    //         program_id,
-    //         &q3_26_vault::instruction::Close {}.data(),
-    //         q3_26_vault::accounts::Close {
-    //             user: user.pubkey(),
-    //             vault_state,
-    //             vault,
-    //             system_program: system_program::ID,
-    //         }
-    //         .to_account_metas(None),
-    //     ),
-    // );
+    send(
+        &mut svm,
+        &user,
+        Instruction::new_with_bytes(
+            program_id,
+            &q3_26_vault::instruction::Close {}.data(),
+            q3_26_vault::accounts::Close {
+                user: user.pubkey(),
+                vault_state,
+                vault,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
 
-    // assert!(
-    //     svm.get_account(&vault_state).is_none(),
-    //     "vault_state should be closed"
-    // );
-    // assert_eq!(
-    //     svm.get_balance(&vault).unwrap_or(0),
-    //     0,
-    //     "vault should be empty"
-    // );
+    assert!(
+        svm.get_account(&vault_state).is_none(),
+        "vault_state should be closed"
+    );
+    assert_eq!(
+        svm.get_balance(&vault).unwrap_or(0),
+        0,
+        "vault should be empty"
+    );
 }
