@@ -27,7 +27,7 @@ pub mod q3_26_vault {
         ctx.accounts.withdraw(amount)
     }
 
-    // pub fn close(ctx: Context<Close>) -> Result<()> {
-    //     ctx.accounts.close()
-    // }
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        ctx.accounts.close()
+    }
 }
