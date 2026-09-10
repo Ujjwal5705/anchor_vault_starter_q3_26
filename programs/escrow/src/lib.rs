@@ -27,7 +27,7 @@ pub mod escrow {
         ctx.accounts.refund()
     }
 
-    // pub fn update(ctx: Context<Update>, receive: u64) -> Result<()> {
-    //     ctx.accounts.update(receive)
-    // }
+    pub fn update(ctx: Context<Update>, receive: u64) -> Result<()> {
+        ctx.accounts.update(receive)
+    }
 }
