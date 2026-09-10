@@ -180,3 +180,107 @@ fn test_make() {
     assert!(svm.get_account(&escrow_pda).is_some(), "escrow should exist after make");
     assert!(svm.get_account(&vault).is_some(), "vault ATA should exist after make");
 }
+
+#[test]
+fn test_take() {
+    let (mut svm, maker, taker, mint_authority) = setup();
+    let program_id = escrow::id();
+
+    let mint_a = create_mint_and_fund(
+        &mut svm,
+        &maker,
+        &mint_authority,
+        &maker.pubkey(),
+        DEPOSIT_AMOUNT,
+    );
+    let mint_b = create_mint_and_fund(
+        &mut svm,
+        &maker,
+        &mint_authority,
+        &taker.pubkey(),
+        RECEIVE_AMOUNT,
+    );
+
+    let (escrow_pda, _) = Pubkey::find_program_address(
+        &[ESCROW_SEED, maker.pubkey().as_ref(), SEED.to_le_bytes().as_ref()],
+        &program_id,
+    );
+
+    let token_program = spl_token_2022::id();
+    let maker_ata_a =
+        get_associated_token_address_with_program_id(&maker.pubkey(), &mint_a, &token_program);
+    let vault =
+        get_associated_token_address_with_program_id(&escrow_pda, &mint_a, &token_program);
+
+    // --- make ---
+    send(
+        &mut svm,
+        &maker,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::Make {
+                seed: SEED,
+                receive: RECEIVE_AMOUNT,
+                deposit: DEPOSIT_AMOUNT,
+            }
+            .data(),
+            escrow::accounts::Make {
+                maker: maker.pubkey(),
+                mint_a,
+                mint_b,
+                maker_ata_a,
+                escrow: escrow_pda,
+                vault,
+                token_program,
+                associated_token_program: anchor_spl::associated_token::ID,
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
+
+    // --- take ---
+    let taker_ata_a =
+        get_associated_token_address_with_program_id(&taker.pubkey(), &mint_a, &token_program);
+    let taker_ata_b =
+        get_associated_token_address_with_program_id(&taker.pubkey(), &mint_b, &token_program);
+    let maker_ata_b =
+        get_associated_token_address_with_program_id(&maker.pubkey(), &mint_b, &token_program);
+
+    send(
+        &mut svm,
+        &taker,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::Take {}.data(),
+            escrow::accounts::Take {
+                taker: taker.pubkey(),
+                maker: maker.pubkey(),
+                mint_a,
+                mint_b,
+                taker_ata_a,
+                taker_ata_b,
+                maker_ata_b,
+                escrow: escrow_pda,
+                vault,
+                token_program,
+                associated_token_program: anchor_spl::associated_token::ID,
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
+
+    assert!(svm.get_account(&escrow_pda).is_none(), "escrow should be closed after take");
+    assert!(svm.get_account(&vault).is_none(), "vault should be closed after take");
+
+    let taker_a_data = svm.get_account(&taker_ata_a).unwrap().data;
+    let maker_b_data = svm.get_account(&maker_ata_b).unwrap().data;
+
+    // Token-2022 account layout: amount is a u64 at byte offset 64
+    let taker_a_amount = u64::from_le_bytes(taker_a_data[64..72].try_into().unwrap());
+    let maker_b_amount = u64::from_le_bytes(maker_b_data[64..72].try_into().unwrap());
+
+    assert_eq!(taker_a_amount, DEPOSIT_AMOUNT, "taker should receive mint_a");
+    assert_eq!(maker_b_amount, RECEIVE_AMOUNT, "maker should receive mint_b");
+}
