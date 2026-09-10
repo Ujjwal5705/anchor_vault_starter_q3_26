@@ -371,3 +371,90 @@ fn test_refund() {
     let maker_a_amount = u64::from_le_bytes(maker_a_data[64..72].try_into().unwrap());
     assert_eq!(maker_a_amount, DEPOSIT_AMOUNT, "maker should get mint_a back after refund");
 }
+
+#[test]
+fn test_update() {
+    let (mut svm, maker, _taker, mint_authority) = setup();
+    let program_id = escrow::id();
+
+    let mint_a = create_mint_and_fund(
+        &mut svm,
+        &maker,
+        &mint_authority,
+        &maker.pubkey(),
+        DEPOSIT_AMOUNT,
+    );
+    let mint_b = create_mint_and_fund(
+        &mut svm,
+        &maker,
+        &mint_authority,
+        &maker.pubkey(),
+        0,
+    );
+
+    let (escrow_pda, _) = Pubkey::find_program_address(
+        &[ESCROW_SEED, maker.pubkey().as_ref(), SEED.to_le_bytes().as_ref()],
+        &program_id,
+    );
+
+    let token_program = spl_token_2022::id();
+    let maker_ata_a =
+        get_associated_token_address_with_program_id(&maker.pubkey(), &mint_a, &token_program);
+    let vault =
+        get_associated_token_address_with_program_id(&escrow_pda, &mint_a, &token_program);
+
+    // --- make ---
+    send(
+        &mut svm,
+        &maker,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::Make {
+                seed: SEED,
+                receive: RECEIVE_AMOUNT,
+                deposit: DEPOSIT_AMOUNT,
+            }
+            .data(),
+            escrow::accounts::Make {
+                maker: maker.pubkey(),
+                mint_a,
+                mint_b,
+                maker_ata_a,
+                escrow: escrow_pda,
+                vault,
+                token_program,
+                associated_token_program: anchor_spl::associated_token::ID,
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
+
+    let new_receive = RECEIVE_AMOUNT * 2;
+
+    // --- update ---
+    send(
+        &mut svm,
+        &maker,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::Update {
+                receive: new_receive,
+            }
+            .data(),
+            escrow::accounts::Update {
+                maker: maker.pubkey(),
+                escrow: escrow_pda,
+            }
+            .to_account_metas(None),
+        ),
+    );
+
+    let escrow_data = svm.get_account(&escrow_pda).unwrap().data;
+    // Escrow layout: 8-byte discriminator, then seed(u64), maker(32), mint_a(32), mint_b(32), receive(u64), bump(u8)
+    let receive_offset = 8 + 8 + 32 + 32 + 32;
+    let stored_receive =
+        u64::from_le_bytes(escrow_data[receive_offset..receive_offset + 8].try_into().unwrap());
+
+    assert_eq!(stored_receive, new_receive, "receive amount should be updated");
+}
