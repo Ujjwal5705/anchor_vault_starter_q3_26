@@ -19,9 +19,9 @@ pub mod escrow {
         ctx.accounts.make(seed, receive, deposit, &ctx.bumps)
     }
 
-    // pub fn take(ctx: Context<Take>) -> Result<()> {
-    //     ctx.accounts.take()
-    // }
+    pub fn take(ctx: Context<Take>) -> Result<()> {
+        ctx.accounts.take()
+    }
 
     // pub fn refund(ctx: Context<Refund>) -> Result<()> {
     //     ctx.accounts.refund()
