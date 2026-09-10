@@ -339,16 +339,6 @@ Expected final state: **7 tests passing** across both programs (2 `test_id` sani
 
 ## Screenshots
 
-![SPL token scripts passing](screenshots/image-1.png)
-
-![SPL token scripts passing](screenshots/image-2.png)
-
-![NFT scripts passing](screenshots/image-3.png)
-
-![SPL transfer finalized](screenshots/image-4.png)
-
-![NFT minted](screenshots/image-5.png)
-
-![NFT minted](screenshots/image-6.png)
-
-![NFT updated](screenshots/image.7.png)
+```text
+Screenshots are in the screenshots folder
+```
